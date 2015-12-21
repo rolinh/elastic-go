@@ -1,5 +1,5 @@
-EXEC = elastigo
-PKG  = github.com/Rolinh/elastigo
+EXEC = elastic
+PKG  = github.com/Rolinh/elastic-go
 
 all: check test build
 

@@ -1,13 +1,12 @@
 //usr/bin/env go run $0 $@; exit
 //
-// Copyright 2015 The elastigo authors. All rights reserved.
+// Copyright 2015 The elastic.go authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-// elastigo is a simple command-line query-only client for elastic REST API.
 //
 // Author: Robin Hahling <robin.hahling@gw-computing.net>
 
-// elastigo is a command line tool to query the Elasticsearch REST API.
+// elastic.go is a command line tool to query the Elasticsearch REST API.
 package main
 
 import (
@@ -26,7 +25,7 @@ import (
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "elastigo"
+	app.Name = "elastic"
 	app.Usage = "A command line tool to query the Elasticsearch REST API"
 	app.Version = "1.0.0"
 	app.Author = "Robin Hahling"
