@@ -12,8 +12,10 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
+	"mime"
 	"net/http"
 	"os"
 	"strings"
@@ -217,6 +219,21 @@ func getJSON(route string) (string, error) {
 	}
 	defer r.Body.Close()
 
+	if r.StatusCode != 200 {
+		return "", fmt.Errorf("unexpected status code: %s", r.Status)
+	}
+
+	mediatype, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	if err != nil {
+		return "", err
+	}
+	if mediatype == "" {
+		return "", errors.New("mediatype not set")
+	}
+	if mediatype != "application/json" {
+		return "", fmt.Errorf("mediatype is '%s', 'application/json' expected", mediatype)
+	}
+
 	var b interface{}
 	if err := json.NewDecoder(r.Body).Decode(&b); err != nil {
 		return "", err
@@ -231,6 +248,10 @@ func getRaw(route string) (string, error) {
 		return "", err
 	}
 	defer r.Body.Close()
+
+	if r.StatusCode != 200 {
+		return "", fmt.Errorf("unexpected status code: %s", r.Status)
+	}
 
 	out, err := ioutil.ReadAll(r.Body)
 	return string(out), err
