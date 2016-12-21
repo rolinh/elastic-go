@@ -29,7 +29,7 @@ func main() {
 	app := cli.NewApp()
 	app.Name = "elastic"
 	app.Usage = "A command line tool to query the Elasticsearch REST API"
-	app.Version = "1.0.0"
+	app.Version = "1.0.1"
 	app.Author = "Robin Hahling"
 	app.Email = "robin.hahling@gw-computing.net"
 	app.Flags = []cli.Flag{
