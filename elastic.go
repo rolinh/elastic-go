@@ -38,6 +38,10 @@ func main() {
 			Value: "http://localhost:9200/",
 			Usage: "Base API URL",
 		},
+		cli.BoolFlag{
+			Name:  "trace",
+			Usage: "Trace URLs called",
+		},
 	}
 	app.Commands = []cli.Command{
 		{
@@ -50,7 +54,7 @@ func main() {
 					ShortName: "he",
 					Usage:     "Get cluster health",
 					Action: func(c *cli.Context) {
-						out, err := getJSON(cmdCluster(c, "health"))
+						out, err := getJSON(cmdCluster(c, "health"), c)
 						if err != nil {
 							fatal(err)
 						}
@@ -62,7 +66,7 @@ func main() {
 					ShortName: "s",
 					Usage:     "Get cluster state",
 					Action: func(c *cli.Context) {
-						out, err := getJSON(cmdCluster(c, "state"))
+						out, err := getJSON(cmdCluster(c, "state"), c)
 						if err != nil {
 							fatal(err)
 						}
@@ -81,7 +85,7 @@ func main() {
 					ShortName: "dc",
 					Usage:     "Get index documents count",
 					Action: func(c *cli.Context) {
-						list, err := getRaw(cmdIndex(c, "list"))
+						list, err := getRaw(cmdIndex(c, "list"), c)
 						if err != nil {
 							fatal(err)
 						}
@@ -95,7 +99,7 @@ func main() {
 					ShortName: "l",
 					Usage:     "List all indexes",
 					Action: func(c *cli.Context) {
-						list, err := getRaw(cmdIndex(c, "list"))
+						list, err := getRaw(cmdIndex(c, "list"), c)
 						if err != nil {
 							fatal(err)
 						}
@@ -109,7 +113,7 @@ func main() {
 					ShortName: "si",
 					Usage:     "Get index size",
 					Action: func(c *cli.Context) {
-						list, err := getRaw(cmdIndex(c, "list"))
+						list, err := getRaw(cmdIndex(c, "list"), c)
 						if err != nil {
 							fatal(err)
 						}
@@ -123,7 +127,7 @@ func main() {
 					ShortName: "st",
 					Usage:     "Get index status",
 					Action: func(c *cli.Context) {
-						list, err := getRaw(cmdIndex(c, "list"))
+						list, err := getRaw(cmdIndex(c, "list"), c)
 						if err != nil {
 							fatal(err)
 						}
@@ -137,7 +141,7 @@ func main() {
 					ShortName: "v",
 					Usage:     "List indexes information with many stats",
 					Action: func(c *cli.Context) {
-						list, err := getRaw(cmdIndex(c, "list"))
+						list, err := getRaw(cmdIndex(c, "list"), c)
 						if err != nil {
 							fatal(err)
 						}
@@ -156,7 +160,7 @@ func main() {
 					ShortName: "l",
 					Usage:     "List nodes information",
 					Action: func(c *cli.Context) {
-						out, err := getJSON(cmdNode(c, "list"))
+						out, err := getJSON(cmdNode(c, "list"), c)
 						if err != nil {
 							fatal(err)
 						}
@@ -173,9 +177,9 @@ func main() {
 				var out string
 				var err error
 				if strings.Contains(c.Args().First(), "_cat/") {
-					out, err = getRaw(cmdQuery(c))
+					out, err = getRaw(cmdQuery(c), c)
 				} else {
-					out, err = getJSON(cmdQuery(c))
+					out, err = getJSON(cmdQuery(c), c)
 				}
 				if err != nil {
 					fatal(err)
@@ -193,7 +197,7 @@ func main() {
 					ShortName: "s",
 					Usage:     "Get index sizes",
 					Action: func(c *cli.Context) {
-						out, err := getJSON(cmdStats(c, "size"))
+						out, err := getJSON(cmdStats(c, "size"), c)
 						if err != nil {
 							fatal(err)
 						}
@@ -212,8 +216,8 @@ func fatal(err error) {
 	os.Exit(1)
 }
 
-func getJSON(route string) (string, error) {
-	r, err := http.Get(route)
+func getJSON(route string, c *cli.Context) (string, error) {
+	r, err := httpGet(route, isTraceEnabled(c))
 	if err != nil {
 		return "", err
 	}
@@ -242,8 +246,9 @@ func getJSON(route string) (string, error) {
 	return string(out), err
 }
 
-func getRaw(route string) (string, error) {
-	r, err := http.Get(route)
+func getRaw(route string, c *cli.Context) (string, error) {
+	r, err := httpGet(route, isTraceEnabled(c))
+
 	if err != nil {
 		return "", err
 	}
@@ -382,4 +387,17 @@ func cmdStats(c *cli.Context, subCmd string) string {
 		route = ""
 	}
 	return url + route
+}
+
+func httpGet(route string, trace bool) (*http.Response, error) {
+	if trace {
+		fmt.Println("GET: ", route)
+	}
+	r, err := http.Get(route)
+
+	return r, err
+}
+
+func isTraceEnabled(c *cli.Context) bool {
+	return c.GlobalBool("trace")
 }
