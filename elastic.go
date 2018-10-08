@@ -391,7 +391,7 @@ func cmdStats(c *cli.Context, subCmd string) string {
 
 func httpGet(route string, trace bool) (*http.Response, error) {
 	if trace {
-		fmt.Println("GET: ", route)
+		fmt.Fprintf(os.Stderr, "GET: %s", route)
 	}
 	r, err := http.Get(route)
 
