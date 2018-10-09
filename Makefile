@@ -4,7 +4,7 @@ PKG  = github.com/Rolinh/elastic-go
 all: check test build
 
 build: clean
-	go build -o ${EXEC} ${PKG}
+	CGO_ENABLED=0 go build -a -o ${EXEC} ${PKG}
 
 install: clean
 	go install ${PKG}
