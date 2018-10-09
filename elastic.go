@@ -62,11 +62,25 @@ func main() {
 					},
 				},
 				{
+					// TODO can we get metrics args to this thing?
+					// https://www.elastic.co/guide/en/elasticsearch/reference/5.6/cluster-state.html
 					Name:      "state",
 					ShortName: "s",
 					Usage:     "Get cluster state",
 					Action: func(c *cli.Context) {
 						out, err := getJSON(cmdCluster(c, "state"), c)
+						if err != nil {
+							fatal(err)
+						}
+						fmt.Println(out)
+					},
+				},
+				{
+					Name:      "stats",
+					ShortName: "t",
+					Usage:     "Get cluster stats",
+					Action: func(c *cli.Context) {
+						out, err := getJSON(cmdCluster(c, "stats"), c)
 						if err != nil {
 							fatal(err)
 						}
@@ -161,6 +175,18 @@ func main() {
 					Usage:     "List nodes information",
 					Action: func(c *cli.Context) {
 						out, err := getJSON(cmdNode(c, "list"), c)
+						if err != nil {
+							fatal(err)
+						}
+						fmt.Println(out)
+					},
+				},
+				{
+					Name:      "stats",
+					ShortName: "s",
+					Usage:     "List node stats",
+					Action: func(c *cli.Context) {
+						out, err := getJSON(cmdNode(c, "stats"), c)
 						if err != nil {
 							fatal(err)
 						}
@@ -338,9 +364,11 @@ func cmdCluster(c *cli.Context, subCmd string) string {
 	var arg string
 	switch subCmd {
 	case "health":
-		arg = "/health"
+		arg = "health"
 	case "state":
-		arg = "/state"
+		arg = "state"
+	case "stats":
+		arg = "stats"
 	default:
 		arg = ""
 	}
@@ -365,6 +393,8 @@ func cmdNode(c *cli.Context, subCmd string) string {
 	switch subCmd {
 	case "list":
 		route = "_nodes/_all/host,ip"
+	case "stats":
+		route = "_nodes/_all/stats"
 	default:
 		route = ""
 	}
