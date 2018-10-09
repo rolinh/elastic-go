@@ -20,9 +20,9 @@ check:
 	golint
 
 deps:
-	go get -u github.com/codegangsta/cli
 	go get -u github.com/gilliek/go-xterm256/xterm256
 	go get -u github.com/hokaccha/go-prettyjson
+	go get -u github.com/urfave/cli
 
 deps-dev: deps
 	go get -u -v github.com/golang/lint/golint

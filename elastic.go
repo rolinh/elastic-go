@@ -20,9 +20,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/codegangsta/cli"
 	"github.com/gilliek/go-xterm256/xterm256"
 	"github.com/hokaccha/go-prettyjson"
+	"github.com/urfave/cli"
 )
 
 func main() {
