@@ -19,16 +19,11 @@ check:
 	go vet ${PKG}/...
 	golint
 
-deps:
-	go get -u github.com/gilliek/go-xterm256/xterm256
-	go get -u github.com/hokaccha/go-prettyjson
-	go get -u github.com/urfave/cli
-
 deps-dev: deps
 	go get -u -v github.com/golang/lint/golint
 
 clean:
 	rm -f ${EXEC}
 
-.PHONY: build install test cover check deps deps-dev clean
+.PHONY: build install test cover check deps-dev clean
 
