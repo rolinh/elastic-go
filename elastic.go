@@ -62,11 +62,9 @@ func main() {
 					},
 				},
 				{
-					// TODO can we get metrics args to this thing?
-					// https://www.elastic.co/guide/en/elasticsearch/reference/5.6/cluster-state.html
 					Name:      "state",
 					ShortName: "s",
-					Usage:     "Get cluster state",
+					Usage:     "Get cluster state (allows filter args)",
 					Action: func(c *cli.Context) {
 						out, err := getJSON(cmdCluster(c, "state"), c)
 						if err != nil {
@@ -184,7 +182,7 @@ func main() {
 				{
 					Name:      "stats",
 					ShortName: "s",
-					Usage:     "List node stats",
+					Usage:     "List node stats (allows filter args)",
 					Action: func(c *cli.Context) {
 						out, err := getJSON(cmdNode(c, "stats"), c)
 						if err != nil {
@@ -366,9 +364,9 @@ func cmdCluster(c *cli.Context, subCmd string) string {
 	case "health":
 		arg = "health"
 	case "state":
-		arg = "state"
+		arg = "state/" + strings.Join(c.Args(), ",")
 	case "stats":
-		arg = "stats"
+		arg = "stats/"
 	default:
 		arg = ""
 	}
@@ -394,7 +392,7 @@ func cmdNode(c *cli.Context, subCmd string) string {
 	case "list":
 		route = "_nodes/_all/host,ip"
 	case "stats":
-		route = "_nodes/_all/stats"
+		route = "_nodes/_all/stats/" + strings.Join(c.Args(), ",")
 	default:
 		route = ""
 	}
