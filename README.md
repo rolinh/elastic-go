@@ -37,6 +37,13 @@ go get -u github.com/Rolinh/elastic-go
 
 Make sure that `$GOPATH/bin` is in your `$PATH`.
 
+## Build a Docker image
+
+A `Dockerfile` is provided. Simply run the following command to build the Docker
+image:
+```
+docker build -t Rolinh/elastic-go .
+
 ## Usage
 
 `elastic help` provides general help:
