@@ -1,0 +1,13 @@
+*.log
+*.swp
+.dockerignore
+.git
+.gitignore
+AUTHORS
+Dockerfile
+LICENSE
+Makefile
+README.md
+elastic
+elastic-go
+vendor/
