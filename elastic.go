@@ -15,7 +15,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"mime"
 	"net/http"
 	"os"
 	"strings"
@@ -175,7 +174,7 @@ func main() {
 					ShortName: "l",
 					Usage:     "List nodes information",
 					Action: func(c *cli.Context) {
-						out, err := getJSON(cmdNode(c, "list"), c)
+						out, err := getJSONAll(cmdNode(c, "list"), c)
 						if err != nil {
 							fatal(err)
 						}
@@ -187,7 +186,7 @@ func main() {
 					ShortName: "s",
 					Usage:     "List node stats (allows filter args)",
 					Action: func(c *cli.Context) {
-						out, err := getJSON(cmdNode(c, "stats"), c)
+						out, err := getJSONAll(cmdNode(c, "stats"), c)
 						if err != nil {
 							fatal(err)
 						}
@@ -250,27 +249,38 @@ func getJSON(route string, c *cli.Context) (string, error) {
 	}
 	defer r.Body.Close()
 
-	if r.StatusCode != 200 {
-		return "", fmt.Errorf("unexpected status code: %s", r.Status)
-	}
-
-	mediatype, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if err != nil {
-		return "", err
-	}
-	if mediatype == "" {
-		return "", errors.New("mediatype not set")
-	}
-	if mediatype != "application/json" {
-		return "", fmt.Errorf("mediatype is '%s', 'application/json' expected", mediatype)
-	}
-
 	var b interface{}
 	if err := json.NewDecoder(r.Body).Decode(&b); err != nil {
 		return "", err
 	}
 	out, err := prettyjson.Marshal(b)
 	return string(out), err
+}
+
+func getJSONAll(route string, c *cli.Context) (string, error) {
+	r, err := httpGetAll(route, c)
+	if err != nil {
+		if len(r) == 0 {
+			return "", err
+		}
+	}
+
+	var b interface{}
+	var out string
+	for _, res := range r {
+		defer res.Body.Close()
+		if err := json.NewDecoder(res.Body).Decode(&b); err != nil {
+			return "", err
+		}
+
+		o, err := prettyjson.Marshal(b)
+		if err != nil {
+			return "", err
+		}
+		out = out + "\n" + string(o)
+	}
+
+	return out, err
 }
 
 func getRaw(route string, c *cli.Context) (string, error) {
@@ -281,12 +291,30 @@ func getRaw(route string, c *cli.Context) (string, error) {
 	}
 	defer r.Body.Close()
 
-	if r.StatusCode != 200 {
-		return "", fmt.Errorf("unexpected status code: %s", r.Status)
-	}
-
 	out, err := ioutil.ReadAll(r.Body)
 	return string(out), err
+}
+
+func getRawAll(route string, c *cli.Context) (string, error) {
+	r, err := httpGetAll(route, c)
+	if err != nil {
+		if len(r) == 0 {
+			return "", err
+		}
+	}
+
+	var out string
+	for _, res := range r {
+		defer res.Body.Close()
+		b, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			return "", err
+		}
+
+		out = out + "\n" + string(b)
+	}
+
+	return out, err
 }
 
 // processing functions
@@ -418,6 +446,43 @@ func cmdStats(c *cli.Context, subCmd string) string {
 	return route
 }
 
+func httpGetAll(route string, c *cli.Context) ([]*http.Response, error) {
+	if c.GlobalBool("trace") {
+		fmt.Fprintf(os.Stderr, "GET: %s", route)
+	}
+
+	var rs []*http.Response
+	var err error
+	urls := strings.Split(c.GlobalString("baseurl"), ",")
+
+	if len(urls) == 0 {
+		if c.GlobalBool("trace") {
+			fmt.Fprintf(os.Stderr, "No URLS found in %v", c.GlobalString("baseurl"))
+		}
+
+		return nil, errors.New("no urls")
+	}
+
+	for _, url := range urls {
+		reqURL := url + "/" + route
+		r, e := http.Get(reqURL)
+
+		if e != nil {
+			if c.GlobalBool("trace") {
+				fmt.Fprintf(os.Stderr, "Failed when making request to %s with error %s", reqURL, err.Error())
+			}
+
+			// Don't want to error out if we fail to get a response from one of the nodes
+			err = e
+			continue
+		}
+
+		rs = append(rs, r)
+	}
+
+	return rs, err
+}
+
 func httpGet(route string, c *cli.Context) (*http.Response, error) {
 	if c.GlobalBool("trace") {
 		fmt.Fprintf(os.Stderr, "GET: %s", route)
@@ -432,6 +497,7 @@ func httpGet(route string, c *cli.Context) (*http.Response, error) {
 
 		if err != nil && c.GlobalBool("trace") {
 			fmt.Fprintf(os.Stderr, "Failed when making request to %s with error %s", reqURL, err.Error())
+			continue
 		}
 
 		if r.StatusCode != http.StatusOK {
