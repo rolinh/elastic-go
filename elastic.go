@@ -129,6 +129,7 @@ func main() {
 					Action: func(c *cli.Context) {
 						list, err := getRaw(cmdIndex(c, "list"), c)
 						if err != nil {
+							fmt.Println(list)
 							fatal(err)
 						}
 						for _, idx := range filteredSizeIndexes(list) {
@@ -439,7 +440,7 @@ func cmdStats(c *cli.Context, subCmd string) string {
 
 	switch subCmd {
 	case "size":
-		route = "_stats/index,store"
+		route = "_stats/indexing,store"
 	default:
 		route = ""
 	}
@@ -448,7 +449,7 @@ func cmdStats(c *cli.Context, subCmd string) string {
 
 func httpGetAll(route string, c *cli.Context) ([]*http.Response, error) {
 	if c.GlobalBool("trace") {
-		fmt.Fprintf(os.Stderr, "GET: %s", route)
+		fmt.Fprintf(os.Stderr, "GET: %s\n", route)
 	}
 
 	var rs []*http.Response
@@ -457,7 +458,7 @@ func httpGetAll(route string, c *cli.Context) ([]*http.Response, error) {
 
 	if len(urls) == 0 {
 		if c.GlobalBool("trace") {
-			fmt.Fprintf(os.Stderr, "No URLS found in %v", c.GlobalString("baseurl"))
+			fmt.Fprintf(os.Stderr, "No URLS found in %v\n", c.GlobalString("baseurl"))
 		}
 
 		return nil, errors.New("no urls")
@@ -469,7 +470,7 @@ func httpGetAll(route string, c *cli.Context) ([]*http.Response, error) {
 
 		if e != nil {
 			if c.GlobalBool("trace") {
-				fmt.Fprintf(os.Stderr, "Failed when making request to %s with error %s", reqURL, err.Error())
+				fmt.Fprintf(os.Stderr, "Failed when making request to %s with error %s\n", reqURL, err.Error())
 			}
 
 			// Don't want to error out if we fail to get a response from one of the nodes
@@ -485,7 +486,7 @@ func httpGetAll(route string, c *cli.Context) ([]*http.Response, error) {
 
 func httpGet(route string, c *cli.Context) (*http.Response, error) {
 	if c.GlobalBool("trace") {
-		fmt.Fprintf(os.Stderr, "GET: %s", route)
+		fmt.Fprintf(os.Stderr, "GET: %s\n", route)
 	}
 
 	urls := c.GlobalString("baseurl")
