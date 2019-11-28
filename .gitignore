@@ -2,3 +2,4 @@
 elastic
 elastic-go
 vendor/
+.idea/*

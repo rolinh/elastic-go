@@ -15,7 +15,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"mime"
 	"net/http"
 	"os"
 	"strings"
@@ -32,15 +31,18 @@ func main() {
 	app.Version = "1.2.0"
 	app.Author = "Robin Hahling"
 	app.Email = "robin.hahling@gw-computing.net"
+	app.EnableBashCompletion = true
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:  "baseurl",
-			Value: "http://localhost:9200/",
-			Usage: "Base API URL",
+			Name:   "baseurl",
+			Value:  "http://localhost:9200/",
+			Usage:  "Base API URL",
+			EnvVar: "ELASTIC_URL",
 		},
 		cli.BoolFlag{
-			Name:  "trace",
-			Usage: "Trace URLs called",
+			Name:   "trace",
+			Usage:  "Trace URLs called",
+			EnvVar: "ELASTIC_TRACE",
 		},
 	}
 	app.Commands = []cli.Command{
@@ -127,6 +129,7 @@ func main() {
 					Action: func(c *cli.Context) {
 						list, err := getRaw(cmdIndex(c, "list"), c)
 						if err != nil {
+							fmt.Println(list)
 							fatal(err)
 						}
 						for _, idx := range filteredSizeIndexes(list) {
@@ -241,26 +244,11 @@ func fatal(err error) {
 }
 
 func getJSON(route string, c *cli.Context) (string, error) {
-	r, err := httpGet(route, isTraceEnabled(c))
+	r, err := httpGet(route, c)
 	if err != nil {
 		return "", err
 	}
 	defer r.Body.Close()
-
-	if r.StatusCode != 200 {
-		return "", fmt.Errorf("unexpected status code: %s", r.Status)
-	}
-
-	mediatype, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-	if err != nil {
-		return "", err
-	}
-	if mediatype == "" {
-		return "", errors.New("mediatype not set")
-	}
-	if mediatype != "application/json" {
-		return "", fmt.Errorf("mediatype is '%s', 'application/json' expected", mediatype)
-	}
 
 	var b interface{}
 	if err := json.NewDecoder(r.Body).Decode(&b); err != nil {
@@ -271,16 +259,12 @@ func getJSON(route string, c *cli.Context) (string, error) {
 }
 
 func getRaw(route string, c *cli.Context) (string, error) {
-	r, err := httpGet(route, isTraceEnabled(c))
+	r, err := httpGet(route, c)
 
 	if err != nil {
 		return "", err
 	}
 	defer r.Body.Close()
-
-	if r.StatusCode != 200 {
-		return "", fmt.Errorf("unexpected status code: %s", r.Status)
-	}
 
 	out, err := ioutil.ReadAll(r.Body)
 	return string(out), err
@@ -357,7 +341,6 @@ func colorizeStatus(status string) string {
 // command-line commands from now on
 func cmdCluster(c *cli.Context, subCmd string) string {
 	route := "_cluster/"
-	url := c.GlobalString("baseurl")
 
 	var arg string
 	switch subCmd {
@@ -370,24 +353,24 @@ func cmdCluster(c *cli.Context, subCmd string) string {
 	default:
 		arg = ""
 	}
-	return url + route + arg
+	return route + arg
 }
 
 func cmdIndex(c *cli.Context, subCmd string) string {
 	var route string
-	url := c.GlobalString("baseurl")
+
 	switch subCmd {
 	case "list":
 		route = "_cat/indices?v"
 	default:
 		route = ""
 	}
-	return url + route
+	return route
 }
 
 func cmdNode(c *cli.Context, subCmd string) string {
 	var route string
-	url := c.GlobalString("baseurl")
+
 	switch subCmd {
 	case "list":
 		route = "_nodes/_all/host,ip"
@@ -396,36 +379,49 @@ func cmdNode(c *cli.Context, subCmd string) string {
 	default:
 		route = ""
 	}
-	return url + route
+	return route
 }
 
 func cmdQuery(c *cli.Context) string {
 	route := c.Args().First()
-	url := c.GlobalString("baseurl")
-	return url + route
+	return route
 }
 
 func cmdStats(c *cli.Context, subCmd string) string {
 	var route string
-	url := c.GlobalString("baseurl")
+
 	switch subCmd {
 	case "size":
-		route = "_stats/index,store"
+		route = "_stats/indexing,store"
 	default:
 		route = ""
 	}
-	return url + route
+	return route
 }
 
-func httpGet(route string, trace bool) (*http.Response, error) {
-	if trace {
-		fmt.Fprintf(os.Stderr, "GET: %s", route)
+func httpGet(route string, c *cli.Context) (*http.Response, error) {
+	if c.GlobalBool("trace") {
+		fmt.Fprintf(os.Stderr, "GET: %s\n", route)
 	}
-	r, err := http.Get(route)
 
-	return r, err
-}
+	urls := c.GlobalString("baseurl")
+	err := errors.New("no requests made for " + urls)
 
-func isTraceEnabled(c *cli.Context) bool {
-	return c.GlobalBool("trace")
+	for _, url := range strings.Split(urls, ",") {
+		reqURL := url + "/" + route
+		r, err := http.Get(reqURL)
+
+		if err != nil && c.GlobalBool("trace") {
+			fmt.Fprintf(os.Stderr, "Failed when making request to %s with error %s", reqURL, err.Error())
+			continue
+		}
+
+		if r.StatusCode != http.StatusOK {
+			continue
+		}
+
+		return r, err
+	}
+
+	return nil, err
 }
