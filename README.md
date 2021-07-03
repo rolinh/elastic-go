@@ -43,6 +43,7 @@ A `Dockerfile` is provided. Simply run the following command to build the Docker
 image:
 ```
 docker build -t Rolinh/elastic-go .
+```
 
 ## Usage
 
@@ -97,5 +98,4 @@ COMMANDS:
 
 GLOBAL OPTIONS:
    --help, -h   show help
-
 ```
